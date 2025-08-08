@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPG画像を使った3Dマップ</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <script>
+        // シーン、カメラ、レンダラーの設定
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 高さマップの画像をテクスチャとしてロード
+        const textureLoader = new THREE.TextureLoader();
+        const heightMap = textureLoader.load('https://kotatab20091111.github.io/sunq/IMG_20250808_103518_566.jpg');
+
+        // 高さマップを利用してジオメトリ（メッシュ）を作成
+        const geometry = new THREE.PlaneGeometry(10, 10, 256, 256); // 高さ情報を扱うための平面ジオメトリ
+        const material = new THREE.MeshStandardMaterial({ color: 0x888888, wireframe: true });
+
+        // 高さマップを使用して頂点を変形
+        geometry.vertices.forEach((vertex, i) => {
+            const x = i % 256; // x座標（高さマップの横のピクセル数）
+            const y = Math.floor(i / 256); // y座標（高さマップの縦のピクセル数）
+
+            const color = heightMap.image.getContext('2d').getImageData(x, y, 1, 1).data; // 画像のピクセルデータを取得
+            const brightness = (color[0] + color[1] + color[2]) / 3; // 輝度（平均値）
+
+            vertex.z = brightness / 255 * 5; // 輝度を高さに変換（0〜5の範囲にスケール）
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        // カメラ位置の設定
+        camera.position.z = 15;
+
+        // ライトの設定
+        const light = new THREE.AmbientLight(0xFFFFFF, 1); // 周囲光
+        scene.add(light);
+
+        // アニメーションループ
+        function animate() {
+            requestAnimationFrame(animate);
+            mesh.rotation.x += 0.01;
+            mesh.rotation.y += 0.01;
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
